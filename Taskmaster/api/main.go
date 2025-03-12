@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"net/http"
 	"log"
 	"os"
 	"context"
 	"time"
+	"os/signal"
 
 	"github.com/joho/godotenv"
 	"github.com/go-chi/chi/v5"
@@ -35,12 +36,12 @@ import (
 func init() {
 	godotenv.Load(".env")
 	
-	fmt.Println("Currrently Initializing Server")
-	fmt.Println("--------------------------------------------- \n")
+	log.Println("Currently Initializing TaskMaster")
+	log.Println("--------------------------------------------- \n")
 
 	DB_URI := os.Getenv("DB_URI")
     if DB_URI == "" {
-        log.Fatal("DB_URI environment variable is not set")
+        log.Println("DB_URI environment variable is not set")
     }
 
 	rnd = renderer.New()
@@ -60,7 +61,7 @@ func init() {
 
 func checkError(err error){
 	if err != nil {
-		fmt.Println("Error Ocurred --------------------------------------- \n")
+		log.Println("Error Ocurred --------------------------------------- \n")
 		log.Fatal(err)
 	}
 }
@@ -70,7 +71,7 @@ func main() {
 
     port := os.Getenv("PORT")
 	if port == "" {
-		log.Fatal("PORT is not found")
+		log.Println("PORT is not found")
 	}
 	port = ":" + port
 
@@ -81,11 +82,35 @@ func main() {
 		WriteTimeout:	60 * time.Second,
 	}
 
-    fmt.Println("--------------------------------------------- \n")
-    fmt.Printf(" Starting Task Master Server on port%s\n", port)
-	fmt.Println("--------------------------------------------- \n")
+	// channel to handle graceful shutdown (receive signal)
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, os.Interrupt)
 
-   if err := app.ListenAndServe(); err != nil {
-	        log.Fatalf("Server failed to start: %v", err)
-   }
+	// then set up the server in a different goroutine
+	go func() {
+		log.Println("--------------------------------------------- \n")
+    	log.Printf(" Starting Task Master Server on port%s\n", port)
+		log.Println("--------------------------------------------- \n")
+
+   		if err := app.ListenAndServe(); err != nil {
+	    	log.Fatal("TaskMaster failed to start: %v", err)
+   		}
+	} ()
+
+	// listen for signals that could shutdown the server
+	sig := <-stopChan
+	log.Printf("Signal received %v \n", sig)
+
+	// disconnects the mongo DB instance
+	if err := client.Disconnect(context.Background()); err != nil {
+		panic(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := app.Shutdown(ctx); err != nil {
+		log.Fatalf("TaskMasteer shutdown failed: %v \n", err)
+	}
+	log.Println("TaskMaster is shutting down now")
 }

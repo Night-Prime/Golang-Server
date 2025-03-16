@@ -82,15 +82,15 @@ func taskHandler() http.Handler {
 	router.Group(func(r chi.Router) {
 		r.Get("/", getTasks)
 		r.Post("/", createTask)
-		r.Put("/:id", updateTask)
-		r.Delete("/:id", deleteTask)
+		r.Put("/{id}", updateTask)
+		r.Delete("/{id}", deleteTask)
 	})
 
 	return router
 }
 
 func getTasks(rw http.ResponseWriter, r *http.Request) {
-	var taskListFromDB = []TaskModel{}
+	var taskListFromDB = []models.TaskModel{}
 
 	filter := bson.D{}
 	cursor, err := db.Collection(collectionName).Find(context.Background(), filter)
@@ -104,14 +104,14 @@ func getTasks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	taskList := []Task{}
+	taskList := []models.Task{}
 	if err = cursor.All(context.Background(), &taskListFromDB); err != nil {
 		checkError(err)
 	}
 
 	// conversion from model to JSON, append to array(taskList)
 	for _, td := range taskListFromDB {
-		taskList = append(taskList, Task{
+		taskList = append(taskList, models.Task{
 			ID:			td.ID.Hex(),
 			Title: 		td.Title,
 			Completed:	td.Completed,
@@ -119,14 +119,14 @@ func getTasks(rw http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	rnd.JSON(rw, http.StatusOK, GetTaskResponse{
+	rnd.JSON(rw, http.StatusOK, models.GetTaskResponse{
 		Message: `All Tasks Received`,
 		Data: taskList,
 	})
 }
 
 func createTask(rw http.ResponseWriter, r *http.Request) {
-	var taskReq CreateTask
+	var taskReq models.CreateTask
 
 	if err := json.NewDecoder(r.Body).Decode(&taskReq); err != nil {
 		log.Printf("Failed to Decode the JSON data: %v \n", err.Error())
@@ -137,7 +137,7 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if taskReq.title == "" {
+	if taskReq.Title == "" {
 		log.Println("No title provided")
 		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "No title provided, Please Add a Title",
@@ -145,7 +145,7 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// create model
-	taskModel := TaskModel{
+	taskModel := models.TaskModel{
 		ID:        primitive.NewObjectID(),
 		Title:     taskReq.Title,
 		Completed: false,
@@ -173,11 +173,13 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 func updateTask(rw http.ResponseWriter, r *http.Request) {
 	// grabs the ID from the url params
 	id := strings.TrimSpace(chi.URLParam(r, "id"))
+	log.Printf("The ID: %v", id)
 	// converts the ID from Hex value into Mongo ID Value
 	res, err := primitive.ObjectIDFromHex(id)
+	log.Printf("The result is : %v", res)
 	if err != nil {
 		log.Printf("Parameter is not a valid Hex Value: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusBadRequest, render.M{
+		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "Paramter is not Valid",
 			"error": err.Error(),
 		})
@@ -186,12 +188,14 @@ func updateTask(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Variable to handle the update request body
-	var updateTaskReq UpdateTask
+	var updateTaskReq models.UpdateTask
 
 	if err := json.NewDecoder(r.Body).Decode(&updateTaskReq); err != nil {
 		log.Printf("Failed to Decode the JSON data: %v \n", err.Error())
 		rnd.JSON(rw, http.StatusBadRequest, err.Error())
 	}
+
+	log.Println("The Data coming in : %v", updateTaskReq)
 
 	if updateTaskReq.Title == "" {
 		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
@@ -202,10 +206,11 @@ func updateTask(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// update task in the DB
-	filter := bson.M{"id": res}
+	filter := bson.M{"_id": res}
 	update := bson.M{"$set": bson.M{"title": updateTaskReq.Title, "completed": updateTaskReq.Completed}}
 
 	data, err := db.Collection(collectionName).UpdateOne(r.Context(), filter, update)
+	log.Println("The updated data: %v", data)
 	if err != nil {
 		log.Printf("Failed to Update the Task in DB: %v \n", err.Error())
 		rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
@@ -235,7 +240,7 @@ func deleteTask(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := bson.M{"id": res}
+	filter := bson.M{"_id": res}
 	if data, err := db.Collection(collectionName).DeleteOne(r.Context(), filter); err != nil{
 		log.Printf("Failed to Delete the Task in DB: %v \n", err.Error())
 		rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
@@ -263,7 +268,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Get("/", homeHandler)
-	router.Mount("/todo", taskHandler())
+	router.Mount("/task", taskHandler())
 
 	app := &http.Server{
 		Addr: 			port,

@@ -1,4 +1,4 @@
-package HomeHandler
+package handler
 
 import (
 	"http"

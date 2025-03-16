@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"http"
+	"net/http"
+	"github.com/Night-Prime/Golang-Server.git/taskmaster/api"
 )
 
 
 func HomeHandler(rw http.ResponseWriter, r *http.Request) {
 	filePath := "./ReadMe.md"
-	err := rnd.FileView(rw, http.StatusOk, filePath, "readme.md")
+	err := Rnd.FileView(rw, http.StatusOK, filePath, "readme.md")
 	CheckError(err)
 }

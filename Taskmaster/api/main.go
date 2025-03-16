@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "fmt"
 	"net/http"
 	"log"
 	"os"
@@ -16,64 +15,19 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/thedevsaddam/renderer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/models"
 	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/models"
 
 )
 
 
-	// Setup variables
-	var rnd *renderer.Render
-	var client *mongo.Client
-	var db *mongo.Database
-
-	const (
-		dbName		string = "taskmaster"
-		collectionName string = "todo"
-	)
-
-// init() - configure & setup
-func init() {
-	godotenv.Load(".env")
-	
-	log.Println("Currently Initializing TaskMaster")
-	log.Println("--------------------------------------------- \n")
-
-	DB_URI := os.Getenv("DB_URI")
-    if DB_URI == "" {
-        log.Println("DB_URI environment variable is not set")
-    }
-
-	rnd = renderer.New()
-	var err error
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err = mongo.Connect(ctx, options.Client().ApplyURI(DB_URI))
-	checkError(err)
-
-	err = client.Ping(ctx, readpref.Primary())
-	checkError(err)
-
-	db = client.Database(dbName)
-}
-
-func checkError(err error){
-	if err != nil {
-		log.Println("Error Ocurred --------------------------------------- \n")
-		log.Fatal(err)
-	}
-}
 
 func homeHandler(rw http.ResponseWriter, r *http.Request) {
 	filePath := "./ReadMe.md"
-	err := rnd.FileView(rw, http.StatusOK, filePath, "readme.md")
-	checkError(err)
+	err := Rnd.FileView(rw, http.StatusOK, filePath, "readme.md")
+	CheckError(err)
 }
 
 
@@ -93,11 +47,11 @@ func getTasks(rw http.ResponseWriter, r *http.Request) {
 	var taskListFromDB = []models.TaskModel{}
 
 	filter := bson.D{}
-	cursor, err := db.Collection(collectionName).Find(context.Background(), filter)
+	cursor, err := DB.Collection(CollectionName).Find(context.Background(), filter)
 
 	if err != nil {
-		log.Printf("Failed to fetch Task records from the db: %v\n", err.Error())
-		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
+		log.Printf("Failed to fetch Task records from the DB: %v\n", err.Error())
+		Rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "Could not fetch the Task collection",
 			"error":   err.Error(),
 		})
@@ -106,7 +60,7 @@ func getTasks(rw http.ResponseWriter, r *http.Request) {
 
 	taskList := []models.Task{}
 	if err = cursor.All(context.Background(), &taskListFromDB); err != nil {
-		checkError(err)
+		CheckError(err)
 	}
 
 	// conversion from model to JSON, append to array(taskList)
@@ -119,7 +73,7 @@ func getTasks(rw http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	rnd.JSON(rw, http.StatusOK, models.GetTaskResponse{
+	Rnd.JSON(rw, http.StatusOK, models.GetTaskResponse{
 		Message: `All Tasks Received`,
 		Data: taskList,
 	})
@@ -130,7 +84,7 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&taskReq); err != nil {
 		log.Printf("Failed to Decode the JSON data: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
+		Rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "Could'nt decode data",
 		})
 
@@ -139,7 +93,7 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 
 	if taskReq.Title == "" {
 		log.Println("No title provided")
-		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
+		Rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "No title provided, Please Add a Title",
 		})
 	}
@@ -153,10 +107,10 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// append to the DB
-	data, err := db.Collection(collectionName).InsertOne(r.Context(), taskModel)
+	data, err := DB.Collection(CollectionName).InsertOne(r.Context(), taskModel)
 	if err != nil{
 		log.Printf("Failed to Insert Task into the DB %v \n", err.Error())
-		rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
+		Rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
 			"message": "Failed to Add Task to the DB",
 			"error": err.Error(),
 		})
@@ -164,7 +118,7 @@ func createTask(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rnd.JSON(rw, http.StatusCreated, renderer.M{
+	Rnd.JSON(rw, http.StatusCreated, renderer.M{
 		"message": "Task Sucessfully Created",
 		"task": data,
 	})
@@ -179,7 +133,7 @@ func updateTask(rw http.ResponseWriter, r *http.Request) {
 	log.Printf("The result is : %v", res)
 	if err != nil {
 		log.Printf("Parameter is not a valid Hex Value: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
+		Rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "Paramter is not Valid",
 			"error": err.Error(),
 		})
@@ -192,13 +146,13 @@ func updateTask(rw http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&updateTaskReq); err != nil {
 		log.Printf("Failed to Decode the JSON data: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusBadRequest, err.Error())
+		Rnd.JSON(rw, http.StatusBadRequest, err.Error())
 	}
 
 	log.Println("The Data coming in : %v", updateTaskReq)
 
 	if updateTaskReq.Title == "" {
-		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
+		Rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "Title can not be empty",
 		})
 
@@ -209,11 +163,11 @@ func updateTask(rw http.ResponseWriter, r *http.Request) {
 	filter := bson.M{"_id": res}
 	update := bson.M{"$set": bson.M{"title": updateTaskReq.Title, "completed": updateTaskReq.Completed}}
 
-	data, err := db.Collection(collectionName).UpdateOne(r.Context(), filter, update)
+	data, err := DB.Collection(CollectionName).UpdateOne(r.Context(), filter, update)
 	log.Println("The updated data: %v", data)
 	if err != nil {
 		log.Printf("Failed to Update the Task in DB: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
+		Rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
 			"message": "Failed to Update Task in the DB",
 			"error": err.Error(),
 		})
@@ -221,7 +175,7 @@ func updateTask(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rnd.JSON(rw, http.StatusOK, renderer.M{
+	Rnd.JSON(rw, http.StatusOK, renderer.M{
 		"message": "Task Updated Sucessfully",
 		"data": data.ModifiedCount,
 	})
@@ -232,7 +186,7 @@ func deleteTask(rw http.ResponseWriter, r *http.Request) {
 	res, err := primitive.ObjectIDFromHex(id)
 	if err != nil{
 		log.Printf("Parameter is not a valid Hex Value: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusBadRequest, renderer.M{
+		Rnd.JSON(rw, http.StatusBadRequest, renderer.M{
 			"message": "Invalid ID",
 			"error": err.Error(),
 		})
@@ -241,14 +195,14 @@ func deleteTask(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := bson.M{"_id": res}
-	if data, err := db.Collection(collectionName).DeleteOne(r.Context(), filter); err != nil{
+	if data, err := DB.Collection(CollectionName).DeleteOne(r.Context(), filter); err != nil{
 		log.Printf("Failed to Delete the Task in DB: %v \n", err.Error())
-		rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
+		Rnd.JSON(rw, http.StatusInternalServerError, renderer.M{
 			"message": "Failed to Delete Task in the DB",
 			"error": err.Error(),
 		})
 	} else {
-		rnd.JSON(rw, http.StatusOK, renderer.M{
+		Rnd.JSON(rw, http.StatusOK, renderer.M{
 			"message": "item deleted successfully",
 			"data":    data,
 		})
@@ -267,7 +221,7 @@ func main() {
 	// set up routing
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
-	router.Get("/", homeHandler)
+	router.Get("/", HomeHandler)
 	router.Mount("/task", taskHandler())
 
 	app := &http.Server{
@@ -297,7 +251,7 @@ func main() {
 	log.Printf("Signal received %v \n", sig)
 
 	// disconnects the mongo DB instance
-	if err := client.Disconnect(context.Background()); err != nil {
+	if err := Client.Disconnect(context.Background()); err != nil {
 		panic(err)
 	}
 

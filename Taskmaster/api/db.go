@@ -1,36 +1,27 @@
-package init
+package main
 
 import(
-	"net/http"
 	"log"
 	"os"
 	"context"
 	"time"
-	"os/signal"
-	"strings"
-	"encoding/json"
 
 	"github.com/joho/godotenv"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/thedevsaddam/renderer"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/models"
 )
 
 	// Setup variables
-	var rnd *renderer.Render
-	var client *mongo.Client
-	var db *mongo.Database
+	var Rnd *renderer.Render
+	var Client *mongo.Client
+	var DB *mongo.Database
 
 	const (
-		dbName			string = "taskmaster"
-		collectionName 	string = "todo"
+		DBName			string = "taskmaster"
+		CollectionName 	string = "todo"
 	)
 
 // init() - configure & setup
@@ -45,17 +36,17 @@ func Init() {
         log.Println("DB_URI environment variable is not set")
     }
 
-	rnd = renderer.New()
+	Rnd = renderer.New()
 	var err error
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err = mongo.Connect(ctx, options.Client().ApplyURI(DB_URI))
+	Client, err = mongo.Connect(ctx, options.Client().ApplyURI(DB_URI))
 	CheckError(err)
 
-	err = client.Ping(ctx, readpref.Primary())
+	err = Client.Ping(ctx, readpref.Primary())
 	CheckError(err)
 
-	db = client.Database(dbName)
+	DB = Client.Database(DBName)
 }

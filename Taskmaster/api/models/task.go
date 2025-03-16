@@ -1,4 +1,4 @@
-package model
+package models
 
 import(
 	"time"
@@ -8,7 +8,7 @@ import(
 
 type (
 	TaskModel struct {
-		ID 			primitve.ObjectID 	`bson:"_id,omitempty"`
+		ID 			primitive.ObjectID 	`bson:"_id,omitempty"`
 		Title 		string				`bson:"title"`
 		Completed	bool				`bson:"completed"`
 		CreatedAt 	time.Time			`bson:"created_at"`
@@ -16,8 +16,22 @@ type (
 
 	Task struct {
 		ID 			string 				`json:"id"`
-		Title 		string				`json:"title`
+		Title 		string				`json:"title"`
 		Completed	bool				`json:"completed"`
-		CreatedAt 	time.Time			`json:"created_at`
+		CreatedAt 	time.Time			`json:"created_at"`
+	}
+
+	GetTaskResponse struct {
+		Message	string 	`json:"message"`
+		Data	[]Task	`json:"data"`
+	}
+
+	CreateTask struct {
+		Title	string	`json:"title"`
+	}
+
+	UpdateTask struct {
+		Title	string	`json:"title"`
+		Completed bool	`json:"completed"`
 	}
 )

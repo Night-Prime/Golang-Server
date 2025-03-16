@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/shared"
 
 	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/models"
 	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/handlers"
@@ -25,12 +24,6 @@ import (
 )
 
 
-
-func homeHandler(rw http.ResponseWriter, r *http.Request) {
-	filePath := "./ReadMe.md"
-	err := Rnd.FileView(rw, http.StatusOK, filePath, "readme.md")
-	CheckError(err)
-}
 
 
 func taskHandler() http.Handler {
@@ -223,7 +216,7 @@ func main() {
 	// set up routing
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
-	router.Get("/", HomeHandler)
+	router.Get("/", handlers.HomeHandler)
 	router.Mount("/task", taskHandler())
 
 	app := &http.Server{

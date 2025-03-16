@@ -12,19 +12,17 @@ import(
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
-	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/shared"
-
 )
 
-	// // Setup variables
-	// var Rnd *renderer.Render
-	// var Client *mongo.Client
-	// var DB *mongo.Database
+	// Setup variables
+	var Rnd *renderer.Render
+	var Client *mongo.Client
+	var DB *mongo.Database
 
-	// const (
-	// 	DBName			string = "taskmaster"
-	// 	CollectionName 	string = "todo"
-	// )
+	const (
+		DBName			string = "taskmaster"
+		CollectionName 	string = "todo"
+	)
 
 // init() - configure & setup
 func Init() {

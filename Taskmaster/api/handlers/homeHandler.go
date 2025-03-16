@@ -8,6 +8,6 @@ import (
 
 func HomeHandler(rw http.ResponseWriter, r *http.Request) {
 	filePath := "./ReadMe.md"
-	err := Rnd.FileView(rw, http.StatusOK, filePath, "readme.md")
-	CheckError(err)
+	err := shared.Rnd.FileView(rw, http.StatusOK, filePath, "readme.md")
+	shared.CheckError(err)
 }

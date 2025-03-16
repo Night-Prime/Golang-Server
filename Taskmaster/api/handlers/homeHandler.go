@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"github.com/Night-Prime/Golang-Server.git/taskmaster/api"
+	"github.com/Night-Prime/Golang-Server.git/taskmaster/api/shared"
 )
 
 

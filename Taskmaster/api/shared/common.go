@@ -1,4 +1,12 @@
-package common
+package shared
+
+import(
+	"log"
+
+	"github.com/thedevsaddam/renderer"
+	"go.mongodb.org/mongo-driver/mongo"
+
+)
 
 	// Setup variables
 	var Rnd *renderer.Render
@@ -9,3 +17,11 @@ package common
 		DBName			string = "taskmaster"
 		CollectionName 	string = "todo"
 	)
+
+
+	func CheckError(err error){
+	if err != nil {
+		log.Println("Error Ocurred --------------------------------------- \n")
+		log.Fatal(err)
+	}
+}
